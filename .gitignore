@@ -24,6 +24,7 @@ __pycache__/
 
 # Vim
 *.swp
+*.swo
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -66,3 +67,19 @@ docs/docs/**/*.json*
 
 test_before_pypi/
 .github/.internal_dspyai/dist/
+
+# Ruff cache
+.ruff_cache/
+
+# Profiling output
+*.prof
+*.lprof
+profile_output/
+
+# Benchmark results
+.benchmarks/
+benchmark_results/
+
+# Editor backup files
+*~
+*.orig
