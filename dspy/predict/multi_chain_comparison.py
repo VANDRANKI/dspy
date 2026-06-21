@@ -1,11 +1,56 @@
+from typing import Any
+
 from dspy.predict.predict import Predict
 from dspy.primitives.module import Module
+from dspy.primitives.prediction import Prediction
 from dspy.signatures import InputField, OutputField
-from dspy.signatures.signature import ensure_signature
+from dspy.signatures.signature import Signature, ensure_signature
 
 
 class MultiChainComparison(Module):
-    def __init__(self, signature, M=3, temperature=0.7, **config):  # noqa: N803
+    """A self-refinement module that compares M reasoning attempts and selects the best answer.
+
+    ``MultiChainComparison`` appends *M* ``InputField`` slots to the given
+    signature — one per student reasoning attempt — and prepends a
+    ``rationale`` ``OutputField``. A single :class:`~dspy.predict.Predict`
+    call then receives all attempts and produces a corrected rationale together
+    with the final answer field from the original signature.
+
+    This mirrors the *self-consistency + comparison* strategy: rather than
+    majority-voting over raw answers, the LM is given explicit access to each
+    attempt's reasoning chain and is instructed to reconcile them holistically.
+
+    Args:
+        signature: The base DSPy signature (class or string shorthand) that
+            defines the task's input and output fields.
+        M: Number of student reasoning attempts to compare. Defaults to ``3``.
+        temperature: Sampling temperature forwarded to the underlying
+            :class:`~dspy.predict.Predict` call. Defaults to ``0.7``.
+        **config: Additional keyword arguments passed through to
+            :class:`~dspy.predict.Predict`.
+
+    Examples:
+        ```python
+        import dspy
+
+        dspy.configure(lm=dspy.LM("openai/gpt-4o-mini"))
+
+        cot = dspy.ChainOfThought("question -> answer")
+        completions = [cot(question="What is 2+2?") for _ in range(3)]
+
+        mcc = dspy.MultiChainComparison("question -> answer", M=3)
+        result = mcc(completions=completions, question="What is 2+2?")
+        print(result.answer)  # "4"
+        ```
+    """
+
+    def __init__(
+        self,
+        signature: type[Signature] | str,
+        M: int = 3,  # noqa: N803
+        temperature: float = 0.7,
+        **config: Any,
+    ) -> None:
         super().__init__()
 
         self.M = M
@@ -32,8 +77,30 @@ class MultiChainComparison(Module):
 
         self.predict = Predict(signature, temperature=temperature, **config)
 
-    def forward(self, completions, **kwargs):
-        attempts = []
+    def forward(self, completions: list[Prediction], **kwargs: Any) -> Prediction:
+        """Run the comparison over *M* completions and return the best prediction.
+
+        Each entry in ``completions`` must contain a ``rationale`` (or
+        ``reasoning``) field and the signature's last output field. These are
+        formatted as student attempt strings and injected into the extended
+        signature before the underlying :class:`~dspy.predict.Predict` call.
+
+        Args:
+            completions: A list of exactly ``M`` :class:`~dspy.primitives.Prediction`
+                objects produced by earlier forward passes of the wrapped module.
+            **kwargs: Additional keyword arguments forwarded to the underlying
+                :class:`~dspy.predict.Predict` call (e.g., the original input
+                fields such as ``question``).
+
+        Returns:
+            A :class:`~dspy.primitives.Prediction` containing the corrected
+            ``rationale`` field and the final answer field from the original
+            signature.
+
+        Raises:
+            AssertionError: If ``len(completions) != self.M``.
+        """
+        attempts: list[str] = []
 
         for c in completions:
             rationale = c.get("rationale", c.get("reasoning")).strip().split("\n")[0].strip()
