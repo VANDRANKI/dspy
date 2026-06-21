@@ -12,7 +12,7 @@ class BestOfN(Module):
         reward_fn: Callable[[dict, Prediction], float],
         threshold: float,
         fail_count: int | None = None,
-    ):
+    ) -> None:
         """
         Runs a module up to `N` times with different rollout IDs at `temperature=1.0` and
         returns the best prediction out of `N` attempts or the first prediction that passes the
@@ -21,9 +21,13 @@ class BestOfN(Module):
         Args:
             module (Module): The module to run.
             N (int): The number of times to run the module.
-            reward_fn (Callable[[dict, Prediction], float]): The reward function which takes in the args passed to the module, the resulting prediction, and returns a scalar reward.
-            threshold (float): The threshold for the reward function.
-            fail_count (Optional[int], optional): The number of times the module can fail before raising an error. Defaults to N if not provided.
+            reward_fn (Callable[[dict, Prediction], float]): The reward function which takes in
+                the args passed to the module, the resulting prediction, and returns a scalar reward.
+            threshold (float): The threshold for the reward function. The loop stops early when
+                a prediction achieves a reward at or above this value.
+            fail_count (Optional[int], optional): The maximum number of failed attempts (those
+                that raise an exception) before re-raising the last error. Defaults to N if not
+                provided.
 
         Examples:
             ```python
@@ -52,7 +56,7 @@ class BestOfN(Module):
         self.N = N
         self.fail_count = fail_count or N  # default to N if fail_count is not provided
 
-    def forward(self, **kwargs):
+    def forward(self, **kwargs) -> Prediction | None:
         lm = self.module.get_lm() or dspy.settings.lm
         start = lm.kwargs.get("rollout_id", 0)
         rollout_ids = [start + i for i in range(self.N)]
@@ -79,7 +83,7 @@ class BestOfN(Module):
 
             except Exception as e:
                 print(f"BestOfN: Attempt {idx + 1} failed with rollout id {rid}: {e}")
-                if idx > self.fail_count:
+                if idx >= self.fail_count:
                     raise e
                 self.fail_count -= 1
 
