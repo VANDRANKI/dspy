@@ -230,20 +230,23 @@ class SignatureMeta(type(BaseModel)):
 
     @property
     def input_fields(cls) -> dict[str, FieldInfo]:
+        """Return an ordered dict of all input fields declared on this signature."""
         return cls._get_fields_with_type("input")
 
     @property
     def output_fields(cls) -> dict[str, FieldInfo]:
+        """Return an ordered dict of all output fields declared on this signature."""
         return cls._get_fields_with_type("output")
 
     @property
     def fields(cls) -> dict[str, FieldInfo]:
+        """Return all fields (inputs first, then outputs) as an ordered dict."""
         # Make sure to give input fields before output fields
         return {**cls.input_fields, **cls.output_fields}
 
     @property
     def signature(cls) -> str:
-        """The string representation of the signature."""
+        """The string representation of the signature, e.g. 'question -> answer'."""
         input_fields = ", ".join(cls.input_fields.keys())
         output_fields = ", ".join(cls.output_fields.keys())
         return f"{input_fields} -> {output_fields}"
@@ -269,7 +272,39 @@ class SignatureMeta(type(BaseModel)):
 
 
 class Signature(BaseModel, metaclass=SignatureMeta):
-    """"""
+    """Base class for defining DSPy task signatures.
+
+    A ``Signature`` describes the input and output fields of a DSPy module.
+    It acts as a typed contract between the caller and the language model:
+    the LM receives prompts derived from the input fields and is expected to
+    produce values for the output fields.
+
+    Signatures are typically defined as subclasses::
+
+        class QA(dspy.Signature):
+            "Answer questions with short factual answers."
+            question: str = dspy.InputField(desc="The question to answer")
+            answer: str = dspy.OutputField(desc="A short factual answer")
+
+    They can also be created from a shorthand string::
+
+        sig = dspy.Signature("question -> answer")
+        sig_with_instructions = dspy.Signature(
+            "question -> answer", "Answer concisely."
+        )
+
+    The class docstring becomes the LM instruction prompt.  If no docstring
+    is provided, a default instruction is generated from the field names.
+
+    Class methods such as :meth:`append`, :meth:`prepend`, :meth:`insert`,
+    :meth:`delete`, and :meth:`with_updated_fields` return *new* Signature
+    classes without mutating the original, enabling safe composition.
+
+    Note:
+        Do not put a docstring directly on the ``Signature`` base class
+        itself — any docstring here would become the default instruction for
+        all subclasses that omit their own.
+    """
 
     # Note: Don't put a docstring here, as it will become the default instructions
     # for any signature that doesn't define its own instructions.
@@ -479,7 +514,19 @@ class Signature(BaseModel, metaclass=SignatureMeta):
 
     @classmethod
     def equals(cls, other) -> bool:
-        """Compare the JSON schema of two Signature classes."""
+        """Compare the JSON schema of two Signature classes for equality.
+
+        Two signatures are considered equal when they share the same
+        instructions and all field names map to identical
+        ``json_schema_extra`` dictionaries.
+
+        Args:
+            other: The other object to compare against.  Must be a
+                ``BaseModel`` subclass; anything else returns ``False``.
+
+        Returns:
+            bool: ``True`` if the signatures are structurally equal.
+        """
         if not isinstance(other, type) or not issubclass(other, BaseModel):
             return False
         if cls.instructions != other.instructions:
@@ -492,7 +539,18 @@ class Signature(BaseModel, metaclass=SignatureMeta):
         return True
 
     @classmethod
-    def dump_state(cls):
+    def dump_state(cls) -> dict:
+        """Serialize the signature's instructions and field metadata to a dict.
+
+        Returns a dictionary suitable for JSON serialisation and later
+        restoration via :meth:`load_state`.  Only the ``prefix`` and
+        ``description`` of each field are captured — type annotations are
+        not included because they are fixed at class-definition time.
+
+        Returns:
+            dict: A dictionary with keys ``"instructions"`` (str) and
+                ``"fields"`` (list of ``{"prefix": str, "description": str}``).
+        """
         state = {"instructions": cls.instructions, "fields": []}
         for field in cls.fields:
             state["fields"].append(
@@ -505,7 +563,23 @@ class Signature(BaseModel, metaclass=SignatureMeta):
         return state
 
     @classmethod
-    def load_state(cls, state):
+    def load_state(cls, state: dict) -> type["Signature"]:
+        """Restore a signature's instructions and field metadata from a dict.
+
+        Applies the instructions and per-field ``prefix``/``desc`` values
+        stored by :meth:`dump_state` back onto a copy of this signature class.
+        The copy is built from the current class's fields so type annotations
+        are preserved.
+
+        Args:
+            state (dict): A dictionary previously produced by
+                :meth:`dump_state`, with keys ``"instructions"`` and
+                ``"fields"``.
+
+        Returns:
+            type[Signature]: A new Signature class with the restored
+                instructions and field metadata.
+        """
         signature_copy = Signature(deepcopy(cls.fields), cls.instructions)
 
         signature_copy.instructions = state["instructions"]
@@ -517,6 +591,23 @@ class Signature(BaseModel, metaclass=SignatureMeta):
 
 
 def ensure_signature(signature: str | type[Signature], instructions=None) -> None | type[Signature]:
+    """Coerce a string or Signature class to a Signature class.
+
+    Args:
+        signature (str | type[Signature]): A shorthand string like
+            ``"question -> answer"`` or an existing ``Signature`` class.
+            If ``None``, returns ``None``.
+        instructions (str | None): Optional instruction text, only valid
+            when ``signature`` is a string.
+
+    Returns:
+        type[Signature] | None: A ``Signature`` class, or ``None`` if
+            ``signature`` was ``None``.
+
+    Raises:
+        ValueError: If ``instructions`` is provided alongside a
+            ``Signature`` class (instructions are already baked in).
+    """
     if signature is None:
         return None
     if isinstance(signature, str):
@@ -614,7 +705,7 @@ def make_signature(
 
 def _parse_signature(signature: str, names=None) -> dict[str, tuple[type, Any]]:
     if signature.count("->") != 1:
-        raise ValueError(f"Invalid signature format: '{signature}', must contain exactly one '->'.")
+        raise ValueError(f"Invalid signature format: '{signature}', must contain exactly one '->'.")  
 
     inputs_str, outputs_str = signature.split("->")
 
