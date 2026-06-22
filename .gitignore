@@ -4,7 +4,6 @@
 /logs/
 /mlruns/
 /profiler/
-/logs/
 /docs/downloads/
 /docs/experiments/
 
@@ -21,6 +20,8 @@ testing/playbook.ipynb
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
+*.pyo
 
 # Vim
 *.swp
@@ -32,6 +33,28 @@ __pycache__/
 # mac
 .DS_Store
 
+# Coverage and test reports
+.coverage
+.coverage.*
+htmlcov/
+
+# Linter and type-checker caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Hypothesis property-based testing
+.hypothesis/
+
+# Build and distribution artifacts
+build/
+dist/
+*.egg-info/
+
+# Env files
+.env.local
+.env.test
+
 # Other
 .vscode
 *.tsv
@@ -39,12 +62,9 @@ __pycache__/
 gpt*.txt
 *.env
 local/
-build/
-*.egg-info/
 # *.jsonl
 # *.json
 !/data/*.json
-/dist/
 # **/*.pkl
 checklist.md
 finetuning_ckpts/
@@ -56,7 +76,6 @@ assertion.log
 *.db
 /.devcontainer/.personalization.sh
 
-.mypy_cache
 CLAUDE.local.md
 dummy.csv
 docs/docs/**/*.json*
