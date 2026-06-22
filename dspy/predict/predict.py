@@ -43,16 +43,37 @@ def _sanitize_lm_state(lm_state: dict, allow_unsafe_lm_state: bool) -> dict:
 class Predict(Module, Parameter):
     """Basic DSPy module that maps inputs to outputs using a language model.
 
-    Args:
-        signature: The input/output signature describing the task.
-        callbacks: Optional list of callbacks for instrumentation.
-        **config: Default keyword arguments forwarded to the underlying
-            language model. These values can be overridden for a single
-            invocation by passing a ``config`` dictionary when calling the
-            module. For example::
+    ``Predict`` is the fundamental building block of DSPy programs.  It takes
+    a ``Signature`` (or a shorthand string like ``"question -> answer"``),
+    resolves the active language model, formats a prompt via the configured
+    adapter, and returns a ``Prediction`` containing the model's output fields.
 
-                predict = dspy.Predict("q -> a", rollout_id=1, temperature=1.0)
-                predict(q="What is 1 + 52?", config={"rollout_id": 2, "temperature": 1.0})
+    Typical usage::
+
+        import dspy
+
+        dspy.configure(lm=dspy.LM("openai/gpt-4o-mini"))
+
+        qa = dspy.Predict("question -> answer")
+        result = qa(question="What is the speed of light?")
+        print(result.answer)
+
+    Args:
+        signature (str | type[Signature]): The input/output signature
+            describing the task.  Can be a shorthand string such as
+            ``"context, question -> answer"`` or a full ``Signature``
+            subclass.
+        callbacks (list[BaseCallback] | None): Optional list of callbacks
+            for instrumentation and observability.  Passed through to the
+            parent ``Module``.
+        **config: Default keyword arguments forwarded to the underlying
+            language model at call time (e.g. ``temperature``,
+            ``max_tokens``).  These values can be overridden for a single
+            invocation by passing a ``config`` dictionary when calling the
+            module::
+
+                predict = dspy.Predict("q -> a", temperature=1.0)
+                predict(q="What is 1 + 52?", config={"temperature": 0.0})
     """
 
     def __init__(self, signature: str | type[Signature], callbacks: list[BaseCallback] | None = None, **config):
@@ -240,7 +261,44 @@ class Predict(Module, Parameter):
 
         return should_stream
 
-    def forward(self, **kwargs):
+    def forward(self, **kwargs) -> Prediction:
+        """Execute the module synchronously and return a ``Prediction``.
+
+        This is the primary execution path for ``Predict``.  It pre-processes
+        keyword arguments (resolving the LM, demos, and per-call config
+        overrides), invokes the adapter to format the prompt and call the
+        language model, then post-processes the raw completions into a
+        ``Prediction`` object.
+
+        The method respects the global streaming context: if
+        ``settings.send_stream`` is set and this ``Predict`` instance is
+        registered as a stream listener, the adapter is called in streaming
+        mode; otherwise streaming is disabled for this call.
+
+        Args:
+            **kwargs: Keyword arguments corresponding to the signature's input
+                fields.  Three special keys are intercepted before being
+                forwarded to the LM:
+
+                - ``signature``: Override the module's signature for this
+                  call only.
+                - ``demos``: Override the list of few-shot demonstrations.
+                - ``config``: A ``dict`` of LM keyword arguments that are
+                  merged on top of the module-level ``self.config`` values
+                  (e.g. ``{"temperature": 0.9, "max_tokens": 256}``).
+
+        Returns:
+            Prediction: A ``Prediction`` object whose attributes correspond
+                to the signature's output fields.  When ``n > 1`` completions
+                are requested, ``Prediction.completions`` holds all of them.
+
+        Raises:
+            ValueError: If no language model is configured via
+                ``dspy.configure(lm=...)`` and no per-call ``lm`` override
+                is supplied.
+            ValueError: If the configured ``lm`` is a plain string instead
+                of a ``BaseLM`` instance.
+        """
         lm, config, signature, demos, kwargs = self._forward_preprocess(**kwargs)
 
         adapter = settings.adapter or ChatAdapter()
@@ -254,7 +312,29 @@ class Predict(Module, Parameter):
 
         return self._forward_postprocess(completions, signature, **kwargs)
 
-    async def aforward(self, **kwargs):
+    async def aforward(self, **kwargs) -> Prediction:
+        """Execute the module asynchronously and return a ``Prediction``.
+
+        The async counterpart to :meth:`forward`.  Identical semantics and
+        accepted keyword arguments; the adapter is awaited rather than called
+        synchronously.
+
+        Args:
+            **kwargs: Keyword arguments corresponding to the signature's input
+                fields.  The same three special keys (``signature``, ``demos``,
+                ``config``) are intercepted before being forwarded to the LM.
+
+        Returns:
+            Prediction: A ``Prediction`` object whose attributes correspond
+                to the signature's output fields.
+
+        Raises:
+            ValueError: If no language model is configured via
+                ``dspy.configure(lm=...)`` and no per-call ``lm`` override
+                is supplied.
+            ValueError: If the configured ``lm`` is a plain string instead
+                of a ``BaseLM`` instance.
+        """
         lm, config, signature, demos, kwargs = self._forward_preprocess(**kwargs)
 
         adapter = settings.adapter or ChatAdapter()
