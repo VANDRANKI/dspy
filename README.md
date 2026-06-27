@@ -20,12 +20,10 @@ DSPy stands for Declarative Self-improving Python. Instead of brittle prompts, y
 
 ## Documentation: [dspy.ai](https://dspy.ai)
 
-
 **Please go to the [DSPy Docs at dspy.ai](https://dspy.ai)**
 
 
 ## Installation
-
 
 ```bash
 pip install dspy
@@ -35,9 +33,128 @@ To install the very latest from `main`:
 
 ```bash
 pip install git+https://github.com/stanfordnlp/dspy.git
-````
+```
 
 
+## Quick Start
+
+### Basic Usage
+
+```python
+import dspy
+
+# Configure your language model
+lm = dspy.LM("openai/gpt-4o-mini")
+dspy.configure(lm=lm)
+
+# Define a simple signature
+class BasicQA(dspy.Signature):
+    """Answer questions with short factoid answers."""
+    question: str = dspy.InputField()
+    answer: str = dspy.OutputField(desc="often between 1 and 5 words")
+
+# Use a predictor
+predict = dspy.Predict(BasicQA)
+result = predict(question="What is the capital of France?")
+print(result.answer)  # Paris
+```
+
+### Chain of Thought
+
+```python
+import dspy
+
+lm = dspy.LM("openai/gpt-4o-mini")
+dspy.configure(lm=lm)
+
+class MathSolver(dspy.Signature):
+    """Solve math problems step by step."""
+    problem: str = dspy.InputField()
+    solution: str = dspy.OutputField()
+
+# ChainOfThought automatically adds intermediate reasoning
+cot = dspy.ChainOfThought(MathSolver)
+result = cot(problem="If a train travels 120 miles in 2 hours, what is its speed?")
+print(result.solution)
+```
+
+### Optimizer Usage (MIPROv2)
+
+```python
+import dspy
+from dspy.teleprompt import MIPROv2
+
+lm = dspy.LM("openai/gpt-4o-mini")
+dspy.configure(lm=lm)
+
+# Define your module
+class RAGPipeline(dspy.Module):
+    def __init__(self):
+        self.retrieve = dspy.Retrieve(k=3)
+        self.generate = dspy.ChainOfThought("context, question -> answer")
+
+    def forward(self, question):
+        context = self.retrieve(question).passages
+        return self.generate(context=context, question=question)
+
+# Prepare training data
+trainset = [
+    dspy.Example(question="What is photosynthesis?", answer="...").with_inputs("question"),
+    # ... more examples
+]
+
+# Define a metric
+def exact_match(example, prediction, trace=None):
+    return example.answer.lower() == prediction.answer.lower()
+
+# Compile with MIPROv2
+optimizer = MIPROv2(metric=exact_match, auto="medium")
+compiled_rag = optimizer.compile(RAGPipeline(), trainset=trainset)
+```
+
+### Optimizer Usage (BootstrapFewShot)
+
+```python
+import dspy
+from dspy.teleprompt import BootstrapFewShot
+
+lm = dspy.LM("openai/gpt-4o-mini")
+dspy.configure(lm=lm)
+
+class Classifier(dspy.Module):
+    def __init__(self):
+        self.classify = dspy.Predict("text -> sentiment")
+
+    def forward(self, text):
+        return self.classify(text=text)
+
+trainset = [
+    dspy.Example(text="I love this!", sentiment="positive").with_inputs("text"),
+    dspy.Example(text="This is terrible.", sentiment="negative").with_inputs("text"),
+    # ... more examples
+]
+
+def sentiment_metric(example, prediction, trace=None):
+    return example.sentiment == prediction.sentiment
+
+# Bootstrap few-shot examples automatically
+optimizer = BootstrapFewShot(metric=sentiment_metric, max_bootstrapped_demos=4)
+compiled = optimizer.compile(Classifier(), trainset=trainset)
+```
+
+### Tips and Best Practices
+
+- **Start with `dspy.Predict`**: Use it for straightforward tasks before reaching for more complex modules.
+- **Use `dspy.ChainOfThought`** when the task benefits from step-by-step reasoning (math, logic, multi-hop QA).
+- **Write clear signatures**: The docstring and field descriptions are part of the prompt — be precise.
+- **Collect labeled examples** before running optimizers; even 20–50 examples can significantly improve compiled programs.
+- **Choose the right optimizer**:
+  - `BootstrapFewShot` — fast, low data requirements, good for few-shot demos.
+  - `MIPROv2` — state-of-the-art for instruction + demo optimization; use `auto="light"` to start.
+  - `GRPO` / `SIMBA` — for weight optimization when you have sufficient data.
+- **Cache LM calls** during development by setting `dspy.configure(lm=lm, cache=True)` to avoid redundant API costs.
+- **Inspect traces** with `dspy.inspect_history(n=5)` to debug prompts and intermediate reasoning steps.
+- **Save and load** compiled programs with `program.save("my_program")` and `dspy.load("my_program")`.
 
 
 ## 📜 Citation & Reading More
@@ -76,13 +193,3 @@ If you use DSPy or DSP in a research paper, please cite our work as follows:
   year={2022}
 }
 ```
-
-<!-- You can also read more about the evolution of the framework from Demonstrate-Search-Predict to DSPy:
-
-* [**DSPy Assertions: Computational Constraints for Self-Refining Language Model Pipelines**](https://arxiv.org/abs/2312.13382)   (Academic Paper, Dec 2023) 
-* [**DSPy: Compiling Declarative Language Model Calls into Self-Improving Pipelines**](https://arxiv.org/abs/2310.03714) (Academic Paper, Oct 2023) 
-* [**Releasing DSPy, the latest iteration of the framework**](https://twitter.com/lateinteraction/status/1694748401374490946) (Twitter Thread, Aug 2023)
-* [**Releasing the DSP Compiler (v0.1)**](https://twitter.com/lateinteraction/status/1625231662849073160)  (Twitter Thread, Feb 2023)
-* [**Introducing DSP**](https://twitter.com/lateinteraction/status/1617953413576425472)  (Twitter Thread, Jan 2023)
-* [**Demonstrate-Search-Predict: Composing retrieval and language models for knowledge-intensive NLP**](https://arxiv.org/abs/2212.14024.pdf) (Academic Paper, Dec 2022) -->
-
