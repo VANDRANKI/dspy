@@ -1,13 +1,27 @@
 import asyncio
+from collections.abc import Coroutine
 from types import MethodType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, TypeVar
 
 if TYPE_CHECKING:
     from dspy.primitives.module import Module
 
+T = TypeVar("T")
 
-def run_async(coro):
-    """Run an async coroutine from a synchronous context."""
+
+def run_async(coro: Coroutine[Any, Any, T]) -> T:
+    """Run an async coroutine from a synchronous context.
+
+    Detects whether an event loop is already running (e.g. inside Jupyter) and, if so,
+    patches it via `nest_asyncio` so the coroutine can still be driven to completion
+    without raising `RuntimeError: This event loop is already running`.
+
+    Args:
+        coro: The coroutine to run to completion.
+
+    Returns:
+        The value returned by `coro`.
+    """
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
@@ -41,7 +55,7 @@ def syncify(program: "Module", in_place: bool = True) -> "Module":
     """
     if in_place:
 
-        def forward(self, *args, **kwargs):
+        def forward(self, *args: Any, **kwargs: Any) -> Any:
             return run_async(self.aforward(*args, **kwargs))
 
         # Create the `forward` method in place.
@@ -51,10 +65,10 @@ def syncify(program: "Module", in_place: bool = True) -> "Module":
         from dspy.primitives.module import Module
 
         class SyncWrapper(Module):
-            def __init__(self, program: "Module"):
+            def __init__(self, program: "Module") -> None:
                 self.program = program
 
-            def forward(self, *args, **kwargs):
+            def forward(self, *args: Any, **kwargs: Any) -> Any:
                 return run_async(self.program.aforward(*args, **kwargs))
 
         return SyncWrapper(program)
