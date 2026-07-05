@@ -12,7 +12,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def get_dependency_versions():
+def get_dependency_versions() -> dict[str, str]:
+    """Get the versions of the Python interpreter and key dependencies used to save/load a DSPy model.
+
+    Returns:
+        A dict mapping `"python"`, `"dspy"`, and `"cloudpickle"` to their respective version strings.
+    """
     import dspy
 
     cloudpickle_version = ".".join(cloudpickle.__version__.split(".")[:2])
