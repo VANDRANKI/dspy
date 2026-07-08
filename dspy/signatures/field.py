@@ -77,11 +77,56 @@ def _warn_deprecated_field_args(**kwargs):
 
 
 def InputField(**kwargs): # noqa: N802
+    """Declare an input field on a `dspy.Signature`.
+
+    Wraps `pydantic.Field`, so any standard Pydantic `Field` argument (e.g. `default`,
+    `gt`, `ge`, `lt`, `le`, `min_length`, `max_length`) is accepted and enforced as a
+    validation constraint. In addition, DSPy recognizes `desc`, a human-readable
+    description of the field that is rendered into the prompt sent to the LM.
+
+    Args:
+        **kwargs: Pydantic `Field` arguments plus DSPy-specific `desc`.
+
+    Returns:
+        A `pydantic.fields.FieldInfo` marked as a DSPy input field.
+
+    Examples:
+        ```python
+        import dspy
+
+        class QA(dspy.Signature):
+            question: str = dspy.InputField(desc="the question to answer")
+            answer: str = dspy.OutputField()
+        ```
+    """
     _warn_deprecated_field_args(**kwargs)
     return pydantic.Field(**move_kwargs(**kwargs, __dspy_field_type="input"))
 
 
 def OutputField(**kwargs): # noqa: N802
+    """Declare an output field on a `dspy.Signature`.
+
+    Wraps `pydantic.Field`, so any standard Pydantic `Field` argument (e.g. `default`,
+    `gt`, `ge`, `lt`, `le`, `min_length`, `max_length`) is accepted and enforced as a
+    validation constraint. In addition, DSPy recognizes `desc`, a human-readable
+    description of the field that is rendered into the prompt sent to the LM and
+    guides what the LM should produce.
+
+    Args:
+        **kwargs: Pydantic `Field` arguments plus DSPy-specific `desc`.
+
+    Returns:
+        A `pydantic.fields.FieldInfo` marked as a DSPy output field.
+
+    Examples:
+        ```python
+        import dspy
+
+        class QA(dspy.Signature):
+            question: str = dspy.InputField()
+            answer: str = dspy.OutputField(desc="a short, direct answer")
+        ```
+    """
     _warn_deprecated_field_args(**kwargs)
     return pydantic.Field(**move_kwargs(**kwargs, __dspy_field_type="output"))
 
