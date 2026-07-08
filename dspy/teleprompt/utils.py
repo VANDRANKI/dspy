@@ -26,8 +26,19 @@ This file consists of helper functions for our variety of optimizers.
 logger = logging.getLogger(__name__)
 
 
-def create_minibatch(trainset, batch_size=50, rng=None):
-    """Create a minibatch from the trainset."""
+def create_minibatch(trainset: list, batch_size: int = 50, rng: random.Random | None = None) -> list:
+    """Create a minibatch by sampling without replacement from the trainset.
+
+    Args:
+        trainset: The full list of training examples to sample from.
+        batch_size: The desired minibatch size. Clamped down to `len(trainset)` if
+            the trainset is smaller than the requested size.
+        rng: A `random.Random` instance to use for sampling. Defaults to the global
+            `random` module, so pass an explicit instance for reproducible sampling.
+
+    Returns:
+        A list of `batch_size` examples sampled from `trainset`.
+    """
 
     # Ensure batch_size isn't larger than the size of the dataset
     batch_size = min(batch_size, len(trainset))
