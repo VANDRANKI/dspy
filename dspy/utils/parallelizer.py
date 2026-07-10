@@ -16,17 +16,32 @@ logger = logging.getLogger(__name__)
 class ParallelExecutor:
     def __init__(
         self,
-        num_threads=None,
-        max_errors=None,
-        disable_progress_bar=False,
-        provide_traceback=None,
-        compare_results=False,
-        timeout=120,
-        straggler_limit=3,
+        num_threads: int | None = None,
+        max_errors: int | None = None,
+        disable_progress_bar: bool = False,
+        provide_traceback: bool | None = None,
+        compare_results: bool = False,
+        timeout: int = 120,
+        straggler_limit: int = 3,
     ):
         """
         Offers isolation between the tasks (dspy.settings) irrespective of whether num_threads == 1 or > 1.
         Handles also straggler timeouts.
+
+        Args:
+            num_threads: The number of worker threads to use. Defaults to `dspy.settings.num_threads`
+                when not provided. A value of `1` runs all items sequentially on the calling thread.
+            max_errors: The maximum number of failed items to tolerate before cancelling the remaining
+                work. Defaults to `dspy.settings.max_errors` when not provided.
+            disable_progress_bar: Whether to suppress the `tqdm` progress bar.
+            provide_traceback: Whether to log the full traceback for failed items. Defaults to
+                `dspy.settings.provide_traceback` when not provided.
+            compare_results: Whether each result is a tuple whose last element is a numeric metric to
+                average for the progress bar, rather than an arbitrary output to just count.
+            timeout: The number of seconds a straggling item may run before it is resubmitted to another
+                worker thread. Only applies when `num_threads > 1`.
+            straggler_limit: The maximum number of still-running items for which straggler resubmission
+                is attempted at once.
         """
         from dspy.dsp.utils.settings import settings
 
