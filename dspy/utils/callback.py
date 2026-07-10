@@ -17,7 +17,7 @@ class BaseCallback:
 
     To use a callback, subclass this class and implement the desired handlers. Each handler
     will be called at the appropriate time before/after the execution of the corresponding component.  For example, if
-    you want to print a message before and after an LM is called, implement `the on_llm_start` and `on_lm_end` handler.
+    you want to print a message before and after an LM is called, implement the `on_lm_start` and `on_lm_end` handlers.
     Users can set the callback globally using `dspy.configure` or locally by passing it to the component
     constructor.
 
