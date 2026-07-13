@@ -9,13 +9,26 @@ if TYPE_CHECKING:
 _limiter = None
 
 
-def get_async_max_workers():
+def get_async_max_workers() -> int:
+    """Return the configured maximum number of concurrent async workers.
+
+    Returns:
+        The `async_max_workers` value from `dspy.settings`.
+    """
     import dspy
 
     return dspy.settings.async_max_workers
 
 
-def get_limiter():
+def get_limiter() -> CapacityLimiter:
+    """Return the process-wide `CapacityLimiter`, creating or resizing it as needed.
+
+    The limiter is created lazily on first use and resized in place if
+    `dspy.settings.async_max_workers` has changed since it was created.
+
+    Returns:
+        The shared `CapacityLimiter` instance used to bound async concurrency.
+    """
     async_max_workers = get_async_max_workers()
 
     global _limiter
