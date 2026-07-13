@@ -167,7 +167,15 @@ def zip_first(list1, list2):
     return zipped_data
 
 
-def int_or_float(val):
+def int_or_float(val: str) -> int | float:
+    """Parse a string as a float if it contains a decimal point, otherwise as an int.
+
+    Args:
+        val: The string to parse.
+
+    Returns:
+        A `float` if `val` contains a `.`, otherwise an `int`.
+    """
     if "." in val:
         return float(val)
 
