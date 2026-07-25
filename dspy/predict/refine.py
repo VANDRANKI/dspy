@@ -169,7 +169,7 @@ class Refine(Module):
 
             except Exception as e:
                 print(f"Refine: Attempt failed with rollout id {rid}: {e}")
-                if idx > self.fail_count:
+                if idx >= self.fail_count:
                     raise e
                 self.fail_count -= 1
         if best_trace:
