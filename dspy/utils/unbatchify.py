@@ -11,7 +11,7 @@ class Unbatchify:
         batch_fn: Callable[[list[Any]], list[Any]],
         max_batch_size: int = 32,
         max_wait_time: float = 0.1
-    ):
+    ) -> None:
         """
         Initializes the Unbatchify.
 
@@ -48,7 +48,7 @@ class Unbatchify:
             raise e
         return result
 
-    def _worker(self):
+    def _worker(self) -> None:
         """
         Worker thread that batches inputs and processes them using batch_fn.
         """
@@ -85,7 +85,7 @@ class Unbatchify:
 
         print("Worker thread has been terminated.")
 
-    def close(self):
+    def close(self) -> None:
         """
         Stops the worker thread and cleans up resources.
         """
@@ -93,19 +93,19 @@ class Unbatchify:
             self.stop_event.set()
             self.worker_thread.join()
 
-    def __enter__(self):
+    def __enter__(self) -> "Unbatchify":
         """
         Enables use as a context manager.
         """
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         """
         Ensures resources are cleaned up when exiting context.
         """
         self.close()
 
-    def __del__(self):
+    def __del__(self) -> None:
         """
         Ensures the worker thread is terminated when the object is garbage collected.
         """
