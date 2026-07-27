@@ -10,14 +10,25 @@ https://github.com/frmdstryr/magicattr
 import ast
 import sys
 from functools import reduce
+from typing import Any
 
 _AST_TYPES = (ast.Name, ast.Attribute, ast.Subscript, ast.Call)
 _STRING_TYPE = str
 
 
-def get(obj, attr, **kwargs):
+def get(obj: Any, attr: str, **kwargs: Any) -> Any:
     """A getattr that supports nested lookups on objects, dicts, lists, and
     any combination in between.
+
+    Args:
+        obj: The root object to look up the attribute/key path on.
+        attr: A nested attribute/key expression, e.g. `"a.b[0].c"`.
+        **kwargs: If a `default` keyword is provided, it is returned instead of
+            raising when the lookup fails.
+
+    Returns:
+        The value found at the end of the lookup path, or `kwargs["default"]`
+        if the lookup fails and a default was provided.
     """
     for chunk in _parse(attr):
         try:
@@ -30,9 +41,14 @@ def get(obj, attr, **kwargs):
     return obj
 
 
-def set(obj, attr, val):
+def set(obj: Any, attr: str, val: Any) -> None:
     """A setattr that supports nested lookups on objects, dicts, lists, and
     any combination in between.
+
+    Args:
+        obj: The root object to set the attribute/key path on.
+        attr: A nested attribute/key expression, e.g. `"a.b[0].c"`.
+        val: The value to assign at the end of the lookup path.
     """
     obj, attr_or_key, is_subscript = lookup(obj, attr)
     if is_subscript:
@@ -41,9 +57,13 @@ def set(obj, attr, val):
         setattr(obj, attr_or_key, val)
 
 
-def delete(obj, attr):
+def delete(obj: Any, attr: str) -> None:
     """A delattr that supports deletion of a nested lookups on objects,
     dicts, lists, and any combination in between.
+
+    Args:
+        obj: The root object to delete the attribute/key path from.
+        attr: A nested attribute/key expression, e.g. `"a.b[0].c"`.
     """
     obj, attr_or_key, is_subscript = lookup(obj, attr)
     if is_subscript:
