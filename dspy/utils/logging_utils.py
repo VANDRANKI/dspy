@@ -54,7 +54,17 @@ def enable_logging():
     DSPY_LOGGING_STREAM.enabled = True
 
 
-def configure_dspy_loggers(root_module_name):
+def configure_dspy_loggers(root_module_name: str) -> None:
+    """Attach a `DSPY_LOGGING_STREAM`-backed handler to the named logger.
+
+    Removes any pre-existing handler previously installed by this function (identified
+    by name) before adding the new one, so repeated calls do not accumulate duplicate
+    handlers or duplicate log lines.
+
+    Args:
+        root_module_name: Name of the logger to configure, typically the root
+            module name of the calling package (e.g. `"dspy"`).
+    """
     formatter = logging.Formatter(fmt=LOGGING_LINE_FORMAT, datefmt=LOGGING_DATETIME_FORMAT)
 
     dspy_handler_name = "dspy_handler"
