@@ -7,6 +7,22 @@ if TYPE_CHECKING:
 
 
 def _convert_mcp_tool_result(call_tool_result: "mcp.types.CallToolResult") -> str | list[Any]:
+    """Flatten an MCP tool call result into DSPy-friendly content.
+
+    Text content items are collapsed into a single string (or a list of strings when
+    there are multiple), while non-text content items are passed through unchanged.
+
+    Args:
+        call_tool_result: The raw result returned by `mcp.ClientSession.call_tool`.
+
+    Returns:
+        The extracted text (a single string if there was exactly one text content item,
+        otherwise a list mixing text strings and any non-text content items).
+
+    Raises:
+        RuntimeError: If `call_tool_result.isError` is set, indicating the MCP tool
+            call itself failed.
+    """
     from mcp.types import TextContent
 
     text_contents: list[TextContent] = []
