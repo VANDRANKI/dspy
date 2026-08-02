@@ -42,11 +42,7 @@ class Unbatchify:
         """
         future = Future()
         self.input_queue.put((input_item, future))
-        try:
-            result = future.result()
-        except Exception as e:
-            raise e
-        return result
+        return future.result()
 
     def _worker(self):
         """
