@@ -148,7 +148,7 @@ class BaseCallback:
         outputs: dict[str, Any] | None,
         exception: Exception | None = None,
     ):
-        """A handler triggered after format() method of an adapter (subclass of dspy.Adapter) is called..
+        """A handler triggered after format() method of an adapter (subclass of dspy.Adapter) is called.
 
         Args:
             call_id: A unique identifier for the call. Can be used to connect start/end handlers.
@@ -377,7 +377,7 @@ def _get_on_end_handler(callback: BaseCallback, instance: Any, fn: Callable) -> 
     elif isinstance(instance, dspy.Evaluate):
         return callback.on_evaluate_end
 
-    if isinstance(instance, (dspy.Adapter)):
+    if isinstance(instance, dspy.Adapter):
         if fn.__name__ == "format":
             return callback.on_adapter_format_end
         elif fn.__name__ == "parse":
