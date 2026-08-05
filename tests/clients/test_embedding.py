@@ -59,6 +59,29 @@ def test_litellm_embedding(cache):
         np.testing.assert_allclose(result, mock_embeddings)
 
 
+def test_litellm_embedding_per_call_caching_override(cache):
+    # Regression test: an explicit `caching=False` on a call must override an instance
+    # configured with `caching=True`, instead of being silently ignored.
+    model = "text-embedding-ada-002"
+    inputs = ["hello", "world"]
+    mock_embeddings = [
+        [0.1, 0.2, 0.3],  # embedding for "hello"
+        [0.4, 0.5, 0.6],  # embedding for "world"
+    ]
+
+    with patch("litellm.embedding") as mock_litellm:
+        mock_litellm.return_value = MockEmbeddingResponse(mock_embeddings)
+
+        embedding = Embedder(model, caching=True)
+        embedding(inputs, caching=False)
+        embedding(inputs, caching=False)
+
+        # Both calls should hit litellm directly with caching disabled, since the
+        # per-call override should take precedence over the instance default.
+        assert mock_litellm.call_count == 2
+        mock_litellm.assert_called_with(model=model, input=inputs, caching=False)
+
+
 def test_callable_embedding(cache):
     inputs = ["hello", "world", "test"]
 
