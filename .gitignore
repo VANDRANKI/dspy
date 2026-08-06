@@ -22,6 +22,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Virtual environments and test/lint caches
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+
 # Vim
 *.swp
 
