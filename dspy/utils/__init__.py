@@ -11,7 +11,14 @@ from dspy.utils.inspect_history import pretty_print_history
 from dspy.utils.syncify import syncify
 
 
-def download(url):
+def download(url: str) -> None:
+    """Download a file from a URL into the current working directory.
+
+    Skips the download if a local file with the same name and size already exists.
+
+    Args:
+        url: The URL of the file to download.
+    """
     filename = os.path.basename(url)
     remote_size = int(requests.head(url, allow_redirects=True).headers.get("Content-Length", 0))
     local_size = os.path.getsize(filename) if os.path.exists(filename) else 0
