@@ -240,7 +240,7 @@ class EmbeddingsWithScores(Embeddings):
     """DSPy EmbeddingsWithScores retriever.
 
     This class extends the Embeddings retriever to also return similarity scores alongside passages and indices.
-    Similarity scores enable downstream such as thresholding and re-ranking.
+    Similarity scores enable downstream tasks such as thresholding and re-ranking.
     """
 
     def forward(self, query: str):
