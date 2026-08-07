@@ -63,6 +63,7 @@ class BootstrapFewShotWithRandomSearch(Teleprompter):
         scores = []
         all_subscores = []
         score_data = []
+        best_program = None
 
         for seed in range(-3, self.num_candidate_sets):
             if (restrict is not None) and (seed not in restrict):
@@ -138,6 +139,12 @@ class BootstrapFewShotWithRandomSearch(Teleprompter):
             if self.stop_at_score is not None and score >= self.stop_at_score:
                 print(f"Stopping early because score {score} is >= stop_at_score {self.stop_at_score}")
                 break
+
+        if best_program is None:
+            raise ValueError(
+                f"No candidate program was evaluated. This likely means `restrict={restrict}` excluded every "
+                f"seed in range(-3, {self.num_candidate_sets})."
+            )
 
         # To best program, attach all program candidates in decreasing average score
         best_program.candidate_programs = score_data

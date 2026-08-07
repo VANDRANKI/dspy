@@ -1,3 +1,5 @@
+import pytest
+
 import dspy
 from dspy import Example
 from dspy.predict import Predict
@@ -37,3 +39,25 @@ def test_basic_workflow():
         Example(input="What does the fox say?", output="Ring-ding-ding-ding-dingeringeding!").with_inputs("input"),
     ]
     optimizer.compile(student, teacher=teacher, trainset=trainset)
+
+
+def test_restrict_excluding_all_seeds_raises_clear_error():
+    """A `restrict` that matches no seed must raise a clear error instead of UnboundLocalError."""
+    student = SimpleModule("input -> output")
+    teacher = SimpleModule("input -> output")
+
+    lm = DummyLM(
+        [
+            "Initial thoughts",
+            "Finish[blue]",
+        ]
+    )
+    dspy.configure(lm=lm)
+
+    optimizer = BootstrapFewShotWithRandomSearch(metric=simple_metric, max_bootstrapped_demos=1, max_labeled_demos=1)
+    trainset = [
+        Example(input="What is the color of the sky?", output="blue").with_inputs("input"),
+    ]
+
+    with pytest.raises(ValueError, match="No candidate program was evaluated"):
+        optimizer.compile(student, teacher=teacher, trainset=trainset, restrict=[999])
