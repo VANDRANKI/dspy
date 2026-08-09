@@ -66,3 +66,7 @@ docs/docs/**/*.json*
 
 test_before_pypi/
 .github/.internal_dspyai/dist/
+
+# Test/lint tool caches (pytest, ruff)
+.pytest_cache/
+.ruff_cache/
