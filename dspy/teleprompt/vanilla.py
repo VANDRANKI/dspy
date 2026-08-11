@@ -5,9 +5,25 @@ from dspy.teleprompt.teleprompt import Teleprompter
 
 class LabeledFewShot(Teleprompter):
     def __init__(self, k=16):
+        """Initialize the optimizer.
+
+        Args:
+            k: The maximum number of labeled demonstrations to attach to each predictor.
+        """
         self.k = k
 
     def compile(self, student, *, trainset, sample=True):
+        """Attach demonstrations from `trainset` to every predictor in `student`.
+
+        Args:
+            student: The program whose predictors will receive demonstrations.
+            trainset: The labeled examples to draw demonstrations from.
+            sample: If `True`, randomly sample up to `k` demonstrations per predictor.
+                If `False`, use the first `k` examples in `trainset` instead.
+
+        Returns:
+            The `student` program with `demos` populated on each of its predictors.
+        """
         self.student = student.reset_copy()
         self.trainset = trainset
 
