@@ -308,19 +308,41 @@ def log_token_usage(trial_logs, trial_num, model_dict):
 ### OTHER UTILS ###
 
 
-def get_prompt_model(prompt_model):
+def get_prompt_model(prompt_model: dspy.LM | None) -> dspy.LM:
+    """Return the LM to use for prompt generation, falling back to the globally configured LM.
+
+    Args:
+        prompt_model: An explicit LM to use, or `None` to fall back to `dspy.settings.lm`.
+
+    Returns:
+        The LM that should be used for prompt generation.
+    """
     if prompt_model:
         return prompt_model
     else:
         return dspy.settings.lm
 
 
-def get_signature(predictor):
+def get_signature(predictor: dspy.Predict) -> dspy.Signature:
+    """Return the signature attached to a predictor.
+
+    Args:
+        predictor: A predictor instance exposing a `signature` attribute.
+
+    Returns:
+        The predictor's current signature.
+    """
     assert hasattr(predictor, "signature")
     return predictor.signature
 
 
-def set_signature(predictor, updated_signature):
+def set_signature(predictor: dspy.Predict, updated_signature: dspy.Signature) -> None:
+    """Replace the signature attached to a predictor in place.
+
+    Args:
+        predictor: A predictor instance exposing a `signature` attribute.
+        updated_signature: The new signature to assign to the predictor.
+    """
     assert hasattr(predictor, "signature")
     predictor.signature = updated_signature
 
