@@ -54,7 +54,19 @@ def enable_logging():
     DSPY_LOGGING_STREAM.enabled = True
 
 
-def configure_dspy_loggers(root_module_name):
+def configure_dspy_loggers(root_module_name: str) -> None:
+    """Attach the DSPy stream handler to the named logger.
+
+    Sets up a `logging.StreamHandler` (writing to `DSPY_LOGGING_STREAM`) on the
+    logger identified by `root_module_name`, formatted with `LOGGING_LINE_FORMAT`.
+    The logger's level is set to `INFO` and propagation is disabled so DSPy's
+    formatting isn't duplicated by ancestor loggers. Safe to call more than once:
+    any previously attached DSPy handler is removed before the new one is added.
+
+    Args:
+        root_module_name: Name of the logger to configure, typically `__name__`
+            of the package's `__init__.py` (e.g. `"dspy"`).
+    """
     formatter = logging.Formatter(fmt=LOGGING_LINE_FORMAT, datefmt=LOGGING_DATETIME_FORMAT)
 
     dspy_handler_name = "dspy_handler"
