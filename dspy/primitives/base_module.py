@@ -122,7 +122,7 @@ class BaseModule:
 
         # Create an empty instance.
         new_instance = self.__class__.__new__(self.__class__)
-        # Set attribuetes of the copied instance.
+        # Set attributes of the copied instance.
         for attr, value in self.__dict__.items():
             if isinstance(value, BaseModule):
                 setattr(new_instance, attr, value.deepcopy())
