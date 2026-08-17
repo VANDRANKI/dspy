@@ -23,7 +23,15 @@ class ContextWindowExceededError(Exception):
 
 
 class AdapterParseError(Exception):
-    """Exception raised when adapter cannot parse the LM response."""
+    """Exception raised when adapter cannot parse the LM response.
+
+    Args:
+        adapter_name: The name of the adapter that failed to parse the response.
+        signature: The `Signature` whose output fields the response was expected to contain.
+        lm_response: The raw response text returned by the LM.
+        message: Optional additional context prepended to the generated error message.
+        parsed_result: The output fields that were successfully parsed, if any.
+    """
 
     def __init__(
         self,
