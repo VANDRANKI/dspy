@@ -154,7 +154,7 @@ class GEPA(Teleprompter):
     The GEPA optimization engine is provided by the `gepa` package, available from [https://github.com/gepa-ai/gepa](https://github.com/gepa-ai/gepa).
 
     GEPA captures full traces of the DSPy module's execution, identifies the parts of the trace
-    corresponding to a specific predictor, and reflects on the behaviour of the predictor to
+    corresponding to a specific predictor, and reflects on the behavior of the predictor to
     propose a new instruction for the predictor. GEPA allows users to provide textual feedback
     to the optimizer, which is used to guide the evolution of the predictor. The textual feedback
     can be provided at the granularity of individual predictors, or at the level of the entire system's
